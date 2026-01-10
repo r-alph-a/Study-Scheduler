@@ -1,10 +1,18 @@
 #pragma once
 
 #include <vector>
+#include <string>
 #include "Models.h"
+
+struct Session{
+    std::string subject;
+    std::string chapter;
+    double hours;
+};
 
 struct DayPlan {
     int day;
+    std::vector<Session> sessions;
 };
 
 class Scheduler {
