@@ -3,14 +3,6 @@
 #include <string>
 using namespace std;
 
-int getPosNum();
-
-int main(){
-    int dur = getPosNum();
-    cout << dur;
-    return 0;
-}
-
 int getPosNum(){
     int positifNumber(-1);
     bool flag = positifNumber<=0;
@@ -23,4 +15,10 @@ int getPosNum(){
         }
     }
     return positifNumber;
+}
+
+int main(){
+    int dur = getPosNum();
+    cout << dur;
+    return 0;
 }
