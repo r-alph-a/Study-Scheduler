@@ -1,4 +1,12 @@
 #include "Scheduler.h"
+#include <cmath>
+
+static double roundUpToStep(double value, double step) {
+    if (value <= 0.0) {
+        return 0.0;
+    }
+    return std::ceil(value / step) * step;
+}
 
 Scheduler::Scheduler(std::vector<Subject>& subjects) : subjects_(subjects), days_(0), totalHours_(0.0) {}
 
@@ -21,6 +29,8 @@ std::vector<DayPlan> Scheduler::generate() {
 
     double hoursPerDay = totalHours_ / days_;
     double totalWeight =0.0;
+    double remainingTotalHours = totalHours_;
+    double step = 0.25;
 
     for(const auto& subject : subjects_){
         for (const auto& chapter : subject.chapters()) {
@@ -44,7 +54,7 @@ std::vector<DayPlan> Scheduler::generate() {
                 remainingChapterHours = 0.0;
             }
 
-            while (remainingChapterHours > 0.0 && currentDay < days_) {
+            while (remainingChapterHours > 0.0 && currentDay < days_ && remainingTotalHours > 0.0) {
                 double sessionHours;
 
                 if (remainingChapterHours < remainingDayHours) {
@@ -52,6 +62,22 @@ std::vector<DayPlan> Scheduler::generate() {
                 } else {
                     sessionHours = remainingDayHours;
                 }
+                if (sessionHours > remainingTotalHours) {
+                    sessionHours = remainingTotalHours;
+                }
+
+                double rounded = roundUpToStep(sessionHours, step);
+                if (rounded > remainingDayHours) {
+                    rounded = remainingDayHours;
+                }
+                if (rounded > remainingTotalHours) {
+                    rounded = remainingTotalHours;
+                }
+
+                if (rounded <= 0.0) {
+                    return plan;
+                }
+                sessionHours = rounded;
 
                 plan[currentDay].sessions.push_back({
                     subject.name(),
@@ -60,6 +86,7 @@ std::vector<DayPlan> Scheduler::generate() {
 
                 remainingChapterHours -= sessionHours;
                 remainingDayHours -= sessionHours;
+                remainingTotalHours -= sessionHours;
 
                 if (remainingDayHours <= 0.01) {
                     currentDay++;
