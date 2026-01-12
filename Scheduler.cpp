@@ -1,4 +1,12 @@
 #include "Scheduler.h"
+#include <cmath>
+
+static double roundUpToStep(double value, double step) {
+    if (value <= 0.0) {
+        return 0.0;
+    }
+    return std::ceil(value / step) * step;
+}
 
 Scheduler::Scheduler(std::vector<Subject>& subjects) : subjects_(subjects), days_(0), totalHours_(0.0) {}
 
@@ -20,16 +28,18 @@ std::vector<DayPlan> Scheduler::generate() {
     }
 
     double hoursPerDay = totalHours_ / days_;
-    size_t totalChapters = 0;
+    double totalWeight =0.0;
+    double remainingTotalHours = totalHours_;
+    double step = 0.25;
 
     for(const auto& subject : subjects_){
-        totalChapters += subject.chapters().size();
+        for (const auto& chapter : subject.chapters()) {
+            totalWeight += chapter.weight();
+        }
     }
-    if (totalChapters == 0) {
+    if (totalWeight<= 0.0) {
         return plan;
     }
-
-    double hoursPerChapter = totalHours_ / totalChapters;
 
     int currentDay = 0;                 
     double remainingDayHours = hoursPerDay;
@@ -37,15 +47,37 @@ std::vector<DayPlan> Scheduler::generate() {
     for (const auto& subject : subjects_) {
         for (const auto& chapter : subject.chapters()) {
 
-            double remainingChapterHours = hoursPerChapter;
+            double remainingChapterHours;
+            if (chapter.weight() > 0.0) {
+                remainingChapterHours = totalHours_ * ((chapter.weight()) / (totalWeight));
+            } else {
+                remainingChapterHours = 0.0;
+            }
 
-            while (remainingChapterHours > 0 && currentDay < days_) {
+            while (remainingChapterHours > 0.0 && currentDay < days_ && remainingTotalHours > 0.0) {
                 double sessionHours;
+
                 if (remainingChapterHours < remainingDayHours) {
                     sessionHours = remainingChapterHours;
                 } else {
                     sessionHours = remainingDayHours;
                 }
+                if (sessionHours > remainingTotalHours) {
+                    sessionHours = remainingTotalHours;
+                }
+
+                double rounded = roundUpToStep(sessionHours, step);
+                if (rounded > remainingDayHours) {
+                    rounded = remainingDayHours;
+                }
+                if (rounded > remainingTotalHours) {
+                    rounded = remainingTotalHours;
+                }
+
+                if (rounded <= 0.0) {
+                    return plan;
+                }
+                sessionHours = rounded;
 
                 plan[currentDay].sessions.push_back({
                     subject.name(),
@@ -54,6 +86,7 @@ std::vector<DayPlan> Scheduler::generate() {
 
                 remainingChapterHours -= sessionHours;
                 remainingDayHours -= sessionHours;
+                remainingTotalHours -= sessionHours;
 
                 if (remainingDayHours <= 0.01) {
                     currentDay++;
