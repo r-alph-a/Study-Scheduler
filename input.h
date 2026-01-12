@@ -9,6 +9,8 @@ int getPosNum(const std::string& text);
 
 std::string getString(const std::string& text);
 
-Subject createSubject();
+Subject createSubject(const std::string& text);
+
+std::vector<Subject> createSchedule();
 
 #endif
