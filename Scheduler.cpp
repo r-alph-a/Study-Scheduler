@@ -20,16 +20,16 @@ std::vector<DayPlan> Scheduler::generate() {
     }
 
     double hoursPerDay = totalHours_ / days_;
-    size_t totalChapters = 0;
+    double totalWeight =0.0;
 
     for(const auto& subject : subjects_){
-        totalChapters += subject.chapters().size();
+        for (const auto& chapter : subject.chapters()) {
+            totalWeight += chapter.weight();
+        }
     }
-    if (totalChapters == 0) {
+    if (totalWeight<= 0.0) {
         return plan;
     }
-
-    double hoursPerChapter = totalHours_ / totalChapters;
 
     int currentDay = 0;                 
     double remainingDayHours = hoursPerDay;
@@ -37,10 +37,16 @@ std::vector<DayPlan> Scheduler::generate() {
     for (const auto& subject : subjects_) {
         for (const auto& chapter : subject.chapters()) {
 
-            double remainingChapterHours = hoursPerChapter;
+            double remainingChapterHours;
+            if (chapter.weight() > 0.0) {
+                remainingChapterHours = totalHours_ * ((chapter.weight()) / (totalWeight));
+            } else {
+                remainingChapterHours = 0.0;
+            }
 
-            while (remainingChapterHours > 0 && currentDay < days_) {
+            while (remainingChapterHours > 0.0 && currentDay < days_) {
                 double sessionHours;
+
                 if (remainingChapterHours < remainingDayHours) {
                     sessionHours = remainingChapterHours;
                 } else {
