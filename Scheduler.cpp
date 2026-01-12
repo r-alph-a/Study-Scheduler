@@ -1,4 +1,6 @@
 #include "Scheduler.h"
+#include <algorithm>
+#include <string>
 #include <cmath>
 
 static double roundUpToStep(double value, double step) {
@@ -6,6 +8,21 @@ static double roundUpToStep(double value, double step) {
         return 0.0;
     }
     return std::ceil(value / step) * step;
+}
+
+struct Task {
+    std::string subjectName;
+    std::string chapterName;
+    double remainingHours;
+};
+
+bool hasTasksLeft(const std::vector<Task>& tasks) {
+    for (const Task& t : tasks) {
+        if (t.remainingHours > 0.01) {
+            return true;
+        }
+    }
+    return false;
 }
 
 Scheduler::Scheduler(std::vector<Subject>& subjects) : subjects_(subjects), days_(0), totalHours_(0.0) {}
@@ -26,6 +43,10 @@ std::vector<DayPlan> Scheduler::generate() {
         day.day = i;
         plan.push_back(day);
     }
+    
+    if (days_ <= 0 || totalHours_ <= 0.0) {
+        return plan;
+    }
 
     double hoursPerDay = totalHours_ / days_;
     double totalWeight =0.0;
@@ -41,60 +62,57 @@ std::vector<DayPlan> Scheduler::generate() {
         return plan;
     }
 
-    int currentDay = 0;                 
-    double remainingDayHours = hoursPerDay;
+    std::vector<Task> tasks;
 
     for (const auto& subject : subjects_) {
         for (const auto& chapter : subject.chapters()) {
+            double chapterHours = 0.0;
 
-            double remainingChapterHours;
             if (chapter.weight() > 0.0) {
-                remainingChapterHours = totalHours_ * ((chapter.weight()) / (totalWeight));
-            } else {
-                remainingChapterHours = 0.0;
+                chapterHours = totalHours_ * (chapter.weight() / totalWeight);
             }
-
-            while (remainingChapterHours > 0.0 && currentDay < days_ && remainingTotalHours > 0.0) {
-                double sessionHours;
-
-                if (remainingChapterHours < remainingDayHours) {
-                    sessionHours = remainingChapterHours;
-                } else {
-                    sessionHours = remainingDayHours;
-                }
-                if (sessionHours > remainingTotalHours) {
-                    sessionHours = remainingTotalHours;
-                }
-
-                double rounded = roundUpToStep(sessionHours, step);
-                if (rounded > remainingDayHours) {
-                    rounded = remainingDayHours;
-                }
-                if (rounded > remainingTotalHours) {
-                    rounded = remainingTotalHours;
-                }
-
-                if (rounded <= 0.0) {
-                    return plan;
-                }
-                sessionHours = rounded;
-
-                plan[currentDay].sessions.push_back({
-                    subject.name(),
-                    chapter.name(),
-                    sessionHours});
-
-                remainingChapterHours -= sessionHours;
-                remainingDayHours -= sessionHours;
-                remainingTotalHours -= sessionHours;
-
-                if (remainingDayHours <= 0.01) {
-                    currentDay++;
-                    if (currentDay < days_) {
-                        remainingDayHours = hoursPerDay;
-                    }
-                }
+            if (chapterHours > 0.0) {
+                tasks.push_back({ subject.name(), chapter.name(), chapterHours });
             }
+        }
+    }
+
+    if (tasks.empty()) return plan;
+
+    const double preferredChunk = std::max(step, std::min(1.0, hoursPerDay));
+
+    std::size_t idx = 0;
+
+    for (int day = 0; day < days_ && remainingTotalHours > 0.01 && hasTasksLeft(tasks); ++day) {
+        double remainingDayHours = hoursPerDay;
+
+        int guard = 0;
+        while (remainingDayHours > 0.01 && remainingTotalHours > 0.01 && hasTasksLeft(tasks)) {
+            if (++guard > 100000) return plan;
+
+            std::size_t scanned = 0;
+            while (scanned < tasks.size() && tasks[idx].remainingHours <= 0.01) {
+                idx = (idx + 1) % tasks.size();
+                ++scanned;
+            }
+            if (scanned >= tasks.size()) break;
+
+            Task& t = tasks[idx];
+
+            double sessionHours = std::min({ preferredChunk, remainingDayHours, remainingTotalHours, t.remainingHours });
+
+            double rounded = roundUpToStep(sessionHours, step);
+            rounded = std::min({ rounded, remainingDayHours, remainingTotalHours, t.remainingHours });
+            if (rounded <= 0.0) rounded = sessionHours;
+            if (rounded <= 0.01) break;
+
+            plan[day].sessions.push_back({ t.subjectName, t.chapterName, rounded });
+
+            t.remainingHours -= rounded;
+            remainingDayHours -= rounded;
+            remainingTotalHours -= rounded;
+
+            idx = (idx + 1) % tasks.size();
         }
     }
     return plan;
