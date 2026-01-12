@@ -7,7 +7,14 @@ static double roundUpToStep(double value, double step) {
     if (value <= 0.0) {
         return 0.0;
     }
-    return std::ceil(value / step) * step;
+    const double eps = 1e-10;
+    double result = std::ceil((value - eps) / step) * step;
+    
+    if (result > value + eps) {
+        result = std::floor((value + eps) / step) * step;
+    }
+    
+    return result;
 }
 
 struct Task {
@@ -99,18 +106,29 @@ std::vector<DayPlan> Scheduler::generate() {
 
             Task& t = tasks[idx];
 
-            double sessionHours = std::min({ preferredChunk, remainingDayHours, remainingTotalHours, t.remainingHours });
+            double roundedRemaining = roundUpToStep(t.remainingHours, step);
+            roundedRemaining = std::min(roundedRemaining, t.remainingHours);
+            
+            double maxPossible = std::min({ preferredChunk, remainingDayHours, remainingTotalHours, roundedRemaining });
+            
+            double sessionHours = roundUpToStep(maxPossible, step);
+            
+            sessionHours = std::min({ sessionHours, remainingDayHours, remainingTotalHours, t.remainingHours });
+            
+            if (sessionHours < step && t.remainingHours >= step && remainingDayHours >= step && remainingTotalHours >= step) {
+                sessionHours = step;
+            }
+            
+            if (sessionHours <= 0.01) {
+                idx = (idx + 1) % tasks.size();
+                continue;
+            }
 
-            double rounded = roundUpToStep(sessionHours, step);
-            rounded = std::min({ rounded, remainingDayHours, remainingTotalHours, t.remainingHours });
-            if (rounded <= 0.0) rounded = sessionHours;
-            if (rounded <= 0.01) break;
+            plan[day].sessions.push_back({ t.subjectName, t.chapterName, sessionHours });
 
-            plan[day].sessions.push_back({ t.subjectName, t.chapterName, rounded });
-
-            t.remainingHours -= rounded;
-            remainingDayHours -= rounded;
-            remainingTotalHours -= rounded;
+            t.remainingHours -= sessionHours;
+            remainingDayHours -= sessionHours;
+            remainingTotalHours -= sessionHours;
 
             idx = (idx + 1) % tasks.size();
         }

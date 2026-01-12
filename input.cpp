@@ -7,24 +7,26 @@
 #include "input.h"
 #include "Models.h"
 
+#include <limits>
+
 double getPosNum(const std::string& text){
-    double positifNumber(-1);
-    bool flag = positifNumber<=0;
-    while(flag) {
+    double positifNumber;
+
+    while (true) {
         std::cout << text;
-        std::cin >> positifNumber;
-        flag = positifNumber <= 0;
-        if(flag){
-            std::cout << "Number must be positive" << std::endl;
+        if (std::cin >> positifNumber && positifNumber > 0) {
+            std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
+            return positifNumber;
         }
+        std::cout << "Please enter a POSITIVE number.\n";
+        std::cin.clear();
+        std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
     }
-    return positifNumber;
 }
 
 std::string getString(const std::string& text){
     std::string strg;
     std::cout << text << " ";
-    std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
     std::getline(std::cin, strg);
     return strg;
 }
