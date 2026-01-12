@@ -3,10 +3,12 @@
 #include <string>
 #include <sstream>
 #include <vector>
+#include <limits>
+#include "input.h"
 #include "Models.h"
 
-int getPosNum(const std::string& text){
-    int positifNumber(-1);
+double getPosNum(const std::string& text){
+    double positifNumber(-1);
     bool flag = positifNumber<=0;
     while(flag) {
         std::cout << text;
@@ -22,13 +24,14 @@ int getPosNum(const std::string& text){
 std::string getString(const std::string& text){
     std::string strg;
     std::cout << text << " ";
-    std::cin >> strg;
+    std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
+    std::getline(std::cin, strg);
     return strg;
 }
 
 Subject createSubject(const std::string& text){
     Subject result(getString(text));
-    int subjectLenght = getPosNum("How many Chapters in this Subject?");
+    double subjectLenght = getPosNum("How many Chapters in this Subject?");
     for(size_t i(0);i<subjectLenght;++i){
         std::stringstream ss;
         ss << "Name of Chapter " << i+1;
