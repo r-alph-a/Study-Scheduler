@@ -6,14 +6,15 @@ A smart C++ application that helps students plan their study schedule by distrib
 
 ### Windows:
 
-git clone https://github.com/r-alph-a/Study-Scheduler.git
-cd https://github.com/r-alph-a/Study-Scheduler.git
-Double click the run.bat file or run it in command prompt.
+1. open cmd
+2. git clone https://github.com/r-alph-a/Study-Scheduler.git
+3. cd Study-Scheduler
+4. Double click the run.bat file or run it in command prompt.
 
 ### MacOs / Linux:
 
-git clone https://github.com/r-alph-a/Study-Scheduler.git
-cd https://github.com/r-alph-a/Study-Scheduler.git
-make
-scheduler
-
+1. open cmd
+2. git clone https://github.com/r-alph-a/Study-Scheduler.git
+3. cd Study-Scheduler
+4. make
+5. scheduler
